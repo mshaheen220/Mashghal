@@ -1,0 +1,25 @@
+# Runs the Mashghal dashboard itself.
+#
+#   docker compose up --build -d
+#
+# To bring the dashboard AND every app it links to up together (the normal
+# "start the workshop" flow, e.g. after a reboot), use the wrapper script
+# instead, which also drives the sibling repos' own compose files:
+#
+#   ./scripts/start.sh
+#
+# The dashboard is read-only from the rest of the workshop's point of view:
+# it mounts the host Docker socket to read container state for the status
+# dots, but never touches other apps' compose projects, ports, or networks.
+services:
+  dashboard:
+    build: .
+    image: mashghal:latest
+    container_name: mashghal-dashboard
+    ports:
+      - "${DASHBOARD_PORT:-4000}:4000"
+    environment:
+      - PORT=4000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
