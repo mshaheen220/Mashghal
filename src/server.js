@@ -81,6 +81,17 @@ app.post("/api/apps/:id/stop", async (req, res) => {
   res.json(await checkApp(appConfig));
 });
 
+// Static metadata for apps that expose their own tips API, for the browser
+// to fetch tips from directly (see public/tips.js). Deliberately separate
+// from /api/apps: that endpoint performs a live status check as a side
+// effect (and would ignore a user's per-app monitoring-off preference,
+// since this has no reason to pass the `disabled` list), neither of which
+// tips discovery should trigger.
+app.get("/api/tip-sources", (_req, res) => {
+  const sources = apps.filter((a) => a.tipsUrl).map(({ id, name, icon, tipsUrl }) => ({ id, name, icon, tipsUrl }));
+  res.json(sources);
+});
+
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 app.get("/api/version", (_req, res) => res.json({ version: pkg.version }));

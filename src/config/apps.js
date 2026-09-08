@@ -10,6 +10,7 @@ module.exports = [
     icon: "icons/chocolate-mold-factory.svg",
     links: [{ label: "Open", url: "http://localhost:3000" }],
     containers: ["chocolate-mold-factory-app-1"],
+    tipsUrl: "http://localhost:3000/api/tips/",
   },
   {
     id: "platesmith",
@@ -18,6 +19,11 @@ module.exports = [
     icon: "icons/platesmith.svg",
     links: [{ label: "Open", url: "http://localhost:8001" }],
     containers: ["platesmith-app-1"],
+    // Unlike statsApiUrl, this is fetched directly by the browser (that
+    // app's CORS is open to any localhost origin for exactly this), not by
+    // the server - so it's the same localhost URL as `links`, not
+    // host.docker.internal.
+    tipsUrl: "http://localhost:8001/api/tips/",
   },
   {
     id: "spoolman",

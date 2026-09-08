@@ -24,6 +24,7 @@ Mashghal doesn't own or absorb any of those apps' code or compose files — it j
 - **Per-app monitoring toggle**: each card has an eye / eye-off button for apps you don't want checked right now (e.g. a device that's intentionally offline). The backend skips checking that app entirely rather than checking and hiding it, and the status line keeps showing whatever it last knew rather than switching to some "off" state. The preference is remembered per-browser in `localStorage`, not shared or persisted server-side.
 - **Check now**: a refresh button forces a live check for one app on demand (bypassing the 15-minute poll and the monitoring toggle), without changing the monitoring preference.
 - **Spoolman inventory summary**: the Spoolman card shows a live spool count and total remaining filament weight, pulled from its REST API while it's running.
+- **Rotating tips bar**: aggregates each app's own tips into one bar above the dashboard, tagged with which app each tip is from. Currently just Platesmith; more apps will add their own tips endpoint over time (see [Tips from each app](#tips-from-each-app)).
 - **One-command startup**: `./scripts/start.sh` builds and starts every sibling app's compose project, then the dashboard itself — the "everything back up after a reboot" button.
 - **One-command shutdown**: `./scripts/stop.sh` does the reverse.
 - **Version badge**: the header shows Mashghal's own version, read from `package.json`, matching the other apps in the workshop.
@@ -49,6 +50,17 @@ Mounting the socket hands the dashboard container the same privileges as the Doc
 Beyond status, an app's card can show a small live summary pulled from that app's own API — currently just Spoolman's spool count and remaining filament weight (see [src/integrations/spoolman.js](src/integrations/spoolman.js)).
 
 This is fetched from *inside* the dashboard's container, which is a different network namespace than your browser. A link on the page correctly points the browser at `http://localhost:<port>`, but the dashboard backend has to reach that same published port via Docker Desktop's host gateway instead: `http://host.docker.internal:<port>`. Keep that distinction in mind when wiring up a similar integration for another app — `links` stay `localhost`, but any URL the *server* fetches from should use `host.docker.internal` (or the real hostname, for something like OctoPrint that isn't on this Docker host at all).
+
+## Tips from each app
+
+Some apps expose their own `GET /api/tips/` (e.g. Platesmith's, at `http://localhost:8001/api/tips/`), returning `{ "tips": [{ "category": "...", "text": "..." }] }`. The dashboard aggregates whichever apps expose one into a single rotating bar above the cards ([public/tips.js](public/tips.js)), mirroring Platesmith's own tips panel: Fisher-Yates shuffle so every tip is toured once before the order reshuffles, a 6-second autoplay that pauses on request, and prev/next/collapse controls.
+
+Two things worth knowing:
+
+- **This is fetched directly by the browser**, not by the dashboard's server — unlike Spoolman's stats. Each source app needs CORS open to `localhost`/`127.0.0.1` origins for its tips endpoint (Platesmith's already is). Its `tipsUrl` in [src/config/apps.js](src/config/apps.js) is therefore a plain `localhost` URL, the same one the browser already uses for that app's `links` — not `host.docker.internal`, which only matters for a *server-side* fetch (see [Per-app data](#per-app-data-eg-spoolmans-stats) below).
+- **`category` is treated as an opaque, per-app string** — it's shown as-is next to the app's name/icon rather than mapped to a fixed set of labels/icons, since each app defines its own categories and Mashghal shouldn't assume they'll match across apps.
+
+To add another app's tips once it has its own `/api/tips/` endpoint, just add a `tipsUrl` to its entry in `apps.js` — no frontend changes needed, `tips.js` picks up every app with one automatically via `GET /api/tip-sources`.
 
 ## Prerequisites
 
@@ -105,8 +117,10 @@ src/
   dockerStatus.js     Docker socket / HTTP checks -> per-app status summary
   dockerControl.js    Docker socket start/stop for a container-backed app
   config/apps.js      The registry of apps, their links, and how to check each one
+  integrations/        Per-app data pulls beyond status (currently just Spoolman's stats)
 public/
   index.html, styles.css, app.js   The dashboard frontend (no build step)
+  tips.js                          The rotating tips bar (fetches each app's own /api/tips)
   icons/                           Each app's icon, saved locally rather than hotlinked
 scripts/
   start.sh, stop.sh   Bring the whole workshop up/down together
