@@ -13,6 +13,15 @@ module.exports = [
     tipsUrl: "http://localhost:3000/api/tips/",
   },
   {
+    id: "griptab",
+    name: "GripTab",
+    description: "Turns a 3D model into a custom 3D-printable can-tab opener.",
+    icon: "icons/griptab.svg",
+    links: [{ label: "Open", url: "http://localhost:8002" }],
+    containers: ["griptab-app-1"],
+    tipsUrl: "http://localhost:8002/api/tips/",
+  },
+  {
     id: "platesmith",
     name: "Platesmith",
     description: "Turns an image into a stacked multi-color 3D print plate.",
