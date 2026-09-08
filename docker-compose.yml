@@ -8,9 +8,16 @@
 #
 #   ./scripts/start.sh
 #
-# The dashboard is read-only from the rest of the workshop's point of view:
-# it mounts the host Docker socket to read container state for the status
-# dots, but never touches other apps' compose projects, ports, or networks.
+# The dashboard mounts the host Docker socket both to read container state
+# for the status dots and to start/stop each app's container from its card.
+# It never touches other apps' compose projects, ports, or networks
+# directly - it only starts/stops containers those projects already created.
+#
+# The `:ro` here only stops the container from replacing the socket file
+# itself; it does NOT limit what's callable through it - Docker's API has
+# no separate read-only mode, so this container effectively has the same
+# control over the host's Docker daemon as the Docker CLI would. Treat it
+# accordingly: keep the dashboard's port off the public internet.
 services:
   dashboard:
     build: .

@@ -1,6 +1,6 @@
 {
   "name": "mashghal",
-  "version": "0.1.0",
+  "version": "1.3.3",
   "private": true,
   "description": "Local dashboard for the print & craft workshop's docker apps",
   "main": "src/server.js",

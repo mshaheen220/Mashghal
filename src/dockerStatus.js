@@ -1,6 +1,4 @@
-const Docker = require("dockerode");
-
-const docker = new Docker({ socketPath: process.env.DOCKER_SOCKET || "/var/run/docker.sock" });
+const docker = require("./dockerClient");
 
 // Inspects one container by name and reduces it to a simple status string.
 // Missing containers (never started, or the sibling app was never brought
