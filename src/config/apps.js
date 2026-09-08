@@ -35,6 +35,7 @@ module.exports = [
     // host.docker.internal (not localhost) because this is fetched from
     // inside the dashboard's own container, not from the browser.
     statsApiUrl: "http://host.docker.internal:18000",
+     tipsUrl: "/api/local-tips/spoolman",
   },
   {
     id: "octoprint",
@@ -43,5 +44,10 @@ module.exports = [
     icon: "icons/octoprint.svg",
     links: [{ label: "Open", url: "http://theforge.local:5000/" }],
     healthUrl: "http://theforge.local:5000/",
+    // OctoPrint itself has no tips API to point at (it's a device, not an
+    // app in this codebase) - these tips live locally in
+    // src/config/tips/octoprint.js and are served from Mashghal's own
+    // backend instead, at a same-origin path the browser can just fetch.
+    tipsUrl: "/api/local-tips/octoprint",
   },
 ];

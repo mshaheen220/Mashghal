@@ -4,7 +4,7 @@
 // (client/src/tips.ts + TipsPanel.tsx): tour every tip once in a shuffled
 // order before reshuffling, rather than picking randomly with replacement.
 
-const TIPS_AUTOPLAY_INTERVAL_MS = 6000;
+const TIPS_AUTOPLAY_INTERVAL_MS = 9000;
 
 const TIP_ICONS = {
   chevronLeft: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`,
@@ -14,6 +14,34 @@ const TIP_ICONS = {
   close: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
   bulb: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>`,
 };
+
+// Tip text/category/app name can come from another app's API, not just
+// this one's own config, so it goes through here before landing in
+// innerHTML or an attribute (the title="..." below in particular would
+// otherwise let a stray `"` in a tip's text break out of the attribute).
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Category is an opaque, per-app string (see the file header) - rather
+// than maintain a color lookup that'd need updating every time an app
+// adds a new one, derive a stable hue straight from the string itself, so
+// any category from any app gets a consistent, distinct-ish color for
+// free. Not cryptographic - just needs to spread strings across the
+// color wheel and stay the same across renders/reloads for a given name.
+function hueForCategory(category) {
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) {
+    hash = (hash << 5) - hash + category.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 360;
+}
 
 // Fisher-Yates shuffle of [0, length) - tours every tip exactly once in a
 // random order before repeating, instead of picking randomly with
@@ -110,16 +138,24 @@ function renderTips() {
   }
 
   const tip = allTips[order[position]];
-  const icon = tip.appIcon ? `<img class="tips-app-icon" src="${tip.appIcon}" alt="" />` : "";
+  const icon = tip.appIcon ? `<img class="tips-app-icon" src="${escapeHtml(tip.appIcon)}" alt="" />` : "";
+  const appName = escapeHtml(tip.appName);
+  const category = escapeHtml(tip.category);
+  const text = escapeHtml(tip.text);
+  const categoryHue = hueForCategory(tip.category);
 
   container.innerHTML = `
     <div class="tips-bar">
-      <div class="tips-source" title="${tip.appName}">
-        ${icon}
-        <span class="tips-app-name">${tip.appName}</span>
-        <span class="tips-category">${tip.category}</span>
+      <div class="tips-source" title="${appName}">
+        <div class="tips-source-top">
+          ${icon}
+          <span class="tips-app-name">${appName}</span>
+        </div>
+        <span class="tips-category" style="--cat-hue: ${categoryHue}">${category}</span>
       </div>
-      <p class="tips-text">${tip.text}</p>
+      <div class="tips-text-wrap">
+        <p class="tips-text" title="${text}">${text}</p>
+      </div>
       <div class="tips-controls">
         <button id="tips-prev" aria-label="Previous tip">${TIP_ICONS.chevronLeft}</button>
         <button id="tips-next" aria-label="Next tip">${TIP_ICONS.chevronRight}</button>

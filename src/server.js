@@ -6,6 +6,21 @@ const { statusFor } = require("./dockerStatus");
 const { startApp, stopApp } = require("./dockerControl");
 const { fetchSpoolmanStats } = require("./integrations/spoolman");
 
+// Tips stored locally in this app rather than fetched from another app's
+// API - either because the source has no API to fetch from (OctoPrint is
+// a device, not code we control) or because they aren't about any one app
+// at all ("global"). Keyed by the id used in their /api/local-tips/:id URL.
+const LOCAL_TIPS = {
+  octoprint: require("./config/tips/octoprint"),
+  global: require("./config/tips/global"),
+  spoolman: require("./config/tips/spoolman"),
+};
+
+// Not tied to any app in `apps.js`, so it can't be discovered by filtering
+// that list the way api-based tip sources are - listed here instead and
+// merged into /api/tip-sources below.
+const EXTRA_TIP_SOURCES = [{ id: "global", name: "Mashghal", icon: "favicon.svg", tipsUrl: "/api/local-tips/global" }];
+
 const PORT = process.env.PORT || 4000;
 const app = express();
 
@@ -88,8 +103,17 @@ app.post("/api/apps/:id/stop", async (req, res) => {
 // since this has no reason to pass the `disabled` list), neither of which
 // tips discovery should trigger.
 app.get("/api/tip-sources", (_req, res) => {
-  const sources = apps.filter((a) => a.tipsUrl).map(({ id, name, icon, tipsUrl }) => ({ id, name, icon, tipsUrl }));
-  res.json(sources);
+  const appSources = apps.filter((a) => a.tipsUrl).map(({ id, name, icon, tipsUrl }) => ({ id, name, icon, tipsUrl }));
+  res.json([...appSources, ...EXTRA_TIP_SOURCES]);
+});
+
+// Serves this app's own locally-stored tip sets (see LOCAL_TIPS above),
+// in the same { tips: [...] } shape a remote app's /api/tips/ returns, so
+// public/tips.js can fetch every source the same way regardless of origin.
+app.get("/api/local-tips/:id", (req, res) => {
+  const tips = LOCAL_TIPS[req.params.id];
+  if (!tips) return res.status(404).json({ error: "not found" });
+  res.json({ tips });
 });
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));

@@ -6,8 +6,22 @@
     <title>Mashghal</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <link rel="stylesheet" href="styles.css" />
+    <script>
+      // Applied before first paint so a stored light preference doesn't
+      // flash dark (the default) first - kept inline for exactly that
+      // reason, an external file would load too late to avoid the flash.
+      (function () {
+        try {
+          var stored = localStorage.getItem("mashghal:theme");
+          if (stored === "light" || stored === "dark") {
+            document.documentElement.setAttribute("data-theme", stored);
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
+    <button id="theme-toggle" class="theme-toggle"></button>
     <header>
       <h1>Mashghal <span class="arabic">مشغل</span><span id="version" class="version"></span></h1>
       <p class="subtitle">Print &amp; craft workshop control center</p>
@@ -19,5 +33,6 @@
     </footer>
     <script src="app.js"></script>
     <script src="tips.js"></script>
+    <script src="theme.js"></script>
   </body>
 </html>

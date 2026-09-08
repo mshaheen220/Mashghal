@@ -28,6 +28,7 @@ Mashghal doesn't own or absorb any of those apps' code or compose files — it j
 - **One-command startup**: `./scripts/start.sh` builds and starts every sibling app's compose project, then the dashboard itself — the "everything back up after a reboot" button.
 - **One-command shutdown**: `./scripts/stop.sh` does the reverse.
 - **Version badge**: the header shows Mashghal's own version, read from `package.json`, matching the other apps in the workshop.
+- **Dark/light theme toggle**: the button in the top-right corner switches between them; the choice is remembered per-browser in `localStorage`. Light is the same purple palette as dark, just re-balanced for a light background rather than a different color scheme (see [public/styles.css](public/styles.css)'s `:root[data-theme="light"]` block).
 
 ### Roadmap
 
@@ -55,12 +56,13 @@ This is fetched from *inside* the dashboard's container, which is a different ne
 
 Some apps expose their own `GET /api/tips/` (e.g. Platesmith's, at `http://localhost:8001/api/tips/`), returning `{ "tips": [{ "category": "...", "text": "..." }] }`. The dashboard aggregates whichever apps expose one into a single rotating bar above the cards ([public/tips.js](public/tips.js)), mirroring Platesmith's own tips panel: Fisher-Yates shuffle so every tip is toured once before the order reshuffles, a 6-second autoplay that pauses on request, and prev/next/collapse controls.
 
-Two things worth knowing:
+Things worth knowing:
 
-- **This is fetched directly by the browser**, not by the dashboard's server — unlike Spoolman's stats. Each source app needs CORS open to `localhost`/`127.0.0.1` origins for its tips endpoint (Platesmith's already is). Its `tipsUrl` in [src/config/apps.js](src/config/apps.js) is therefore a plain `localhost` URL, the same one the browser already uses for that app's `links` — not `host.docker.internal`, which only matters for a *server-side* fetch (see [Per-app data](#per-app-data-eg-spoolmans-stats) below).
-- **`category` is treated as an opaque, per-app string** — it's shown as-is next to the app's name/icon rather than mapped to a fixed set of labels/icons, since each app defines its own categories and Mashghal shouldn't assume they'll match across apps.
+- **A source's tips are always fetched by the browser**, not by the dashboard's server — unlike Spoolman's stats. For an app with its own API (Platesmith), that means CORS open to `localhost`/`127.0.0.1` origins on its side (Platesmith's already is), and its `tipsUrl` in [src/config/apps.js](src/config/apps.js) is a plain `localhost` URL — the same one the browser already uses for that app's `links`, not `host.docker.internal` (which only matters for a *server-side* fetch — see [Per-app data](#per-app-data-eg-spoolmans-stats) below).
+- **Some sources are stored locally in this app instead of fetched from another app's API** — OctoPrint (a device with no tips API of its own), and a "Mashghal"-branded **global** source for tips that aren't about any one app (materials, file organization, safety, production workflow). Both live in [src/config/tips/](src/config/tips/) and are served from Mashghal's own backend at `GET /api/local-tips/:id` in the same `{ tips: [...] }` shape a remote app's API would return, so `tips.js` fetches every source identically regardless of where it actually comes from.
+- **`category` is treated as an opaque, per-source string** — it's shown as-is next to the source's name/icon rather than mapped to a fixed set of labels/icons, since each source defines its own categories and Mashghal shouldn't assume they'll match across sources.
 
-To add another app's tips once it has its own `/api/tips/` endpoint, just add a `tipsUrl` to its entry in `apps.js` — no frontend changes needed, `tips.js` picks up every app with one automatically via `GET /api/tip-sources`.
+To add another *app's* tips once it has its own `/api/tips/` endpoint, just add a `tipsUrl` to its entry in `apps.js` — no frontend changes needed, `tips.js` picks up every source automatically via `GET /api/tip-sources`. To add another *local* tip set (not tied to a running app), add a file under `src/config/tips/`, register it in the `LOCAL_TIPS` map in `server.js`, and list it in `EXTRA_TIP_SOURCES` there too.
 
 ## Prerequisites
 
@@ -117,10 +119,12 @@ src/
   dockerStatus.js     Docker socket / HTTP checks -> per-app status summary
   dockerControl.js    Docker socket start/stop for a container-backed app
   config/apps.js      The registry of apps, their links, and how to check each one
+  config/tips/         Locally-stored tip sets (OctoPrint, global) served via /api/local-tips
   integrations/        Per-app data pulls beyond status (currently just Spoolman's stats)
 public/
   index.html, styles.css, app.js   The dashboard frontend (no build step)
   tips.js                          The rotating tips bar (fetches each app's own /api/tips)
+  theme.js                         Dark/light toggle button behavior
   icons/                           Each app's icon, saved locally rather than hotlinked
 scripts/
   start.sh, stop.sh   Bring the whole workshop up/down together

@@ -12,6 +12,20 @@
   --red: #d95f5f;
 }
 
+/* Light versions of the same purple palette - same hues as the dark
+   theme's --panel/--accent, just re-balanced for a light background
+   rather than a different color scheme entirely. Toggled via
+   [data-theme] on <html> (see theme.js); no [data-theme] means dark. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f1fa;
+  --panel: #faedfd;
+  --border: #ddc7e6;
+  --text: #2c1333;
+  --muted: #7c6684;
+  --accent: #9b2fb3;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -21,6 +35,28 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--text);
 }
 
 header {
@@ -72,11 +108,18 @@ h1 .version {
 
 .tips-source {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
   flex-shrink: 0;
   padding-inline-end: 0.6rem;
   border-inline-end: 1px solid var(--border);
+}
+
+.tips-source-top {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .tips-app-icon {
@@ -94,27 +137,43 @@ h1 .version {
 }
 
 .tips-category {
+  /* Set per-tip from JS (hueForCategory) - a stable, opaque-string-derived
+     color instead of a fixed lookup, since each app defines its own
+     category names and Mashghal shouldn't assume they'll match across
+     apps. Fallback here only matters if --cat-hue is ever missing. */
+  --cat-hue: 220;
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--muted);
-  border: 1px solid var(--border);
+  color: hsl(var(--cat-hue) 70% 72%);
+  border: 1px solid hsl(var(--cat-hue) 45% 38%);
+  background: hsl(var(--cat-hue) 45% 20%);
   border-radius: 999px;
   padding: 0.1rem 0.4rem;
   white-space: nowrap;
 }
 
-.tips-text {
+.tips-text-wrap {
   flex: 1;
   min-width: 0;
-  min-height: 2.4rem;
+  /* Fixed, not min - a min-height doesn't stop longer tips from growing
+     the bar and shifting the grid below it on every rotation. */
+  height: 3.6rem;
   display: flex;
   align-items: center;
+}
+
+.tips-text {
   margin: 0;
   font-size: 0.85rem;
   line-height: 1.4;
   color: var(--text);
   animation: tips-fade-in 0.25s ease;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
 }
 
 @keyframes tips-fade-in {
