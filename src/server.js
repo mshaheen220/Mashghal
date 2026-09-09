@@ -27,6 +27,11 @@ const app = express();
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 async function checkApp(appConfig) {
+  // Apps with neither `containers` nor `healthUrl` (e.g. a plain collection
+  // of external links) have nothing to check - skip the status/health
+  // lookup entirely rather than pinging an undefined URL.
+  if (!appConfig.containers && !appConfig.healthUrl) return appConfig;
+
   const result = await statusFor(appConfig);
   if (appConfig.statsApiUrl && result.status === "running") {
     result.stats = await fetchSpoolmanStats(appConfig.statsApiUrl);

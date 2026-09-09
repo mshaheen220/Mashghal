@@ -27,7 +27,39 @@ const ICONS = {
   refresh: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>`,
   play: `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>`,
   stop: `<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>`,
+  // Link-type badges: external site, internal/local-network site, native app.
+  externalLink: `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+  internalLink: `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>`,
+  localApp: `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`,
+  free: `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8"/><path d="M16.5 8a2.5 2.5 0 0 0 0-5C13 3 12 8 12 8"/></svg>`,
 };
+
+// Classifies a link so it can be badged with an icon showing what clicking
+// it actually does: hand off to a native app, hit something on this host/
+// LAN, or leave to a public site. mashghal-launch:// is its own scheme (see
+// the "Design Tools" card); everything else is judged by hostname.
+function linkKind(url) {
+  if (url.startsWith("mashghal-launch://")) return "local-app";
+  try {
+    const { hostname } = new URL(url, window.location.origin);
+    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".local")) return "internal";
+  } catch {
+    // Relative/unparsable URL - same-origin, so treat as internal.
+    return "internal";
+  }
+  return "external";
+}
+
+const LINK_KIND_ICON = { external: ICONS.externalLink, internal: ICONS.internalLink, "local-app": ICONS.localApp };
+const LINK_KIND_TITLE = { external: "Opens an external site", internal: "Opens on this host/network", "local-app": "Launches a local app" };
+
+// `cost` is "free" or a run of 1-3 "$" - free gets its own icon, the rest
+// just render the literal $ run so cost reads as intensity at a glance.
+function costBadge(cost) {
+  if (!cost) return "";
+  if (cost === "free") return `<span class="link-cost link-cost-free" title="Free" aria-label="Free">${ICONS.free}</span>`;
+  return `<span class="link-cost" title="Cost: ${cost}">${cost}</span>`;
+}
 
 const DISABLED_KEY = "mashghal:disabledMonitoring";
 
@@ -61,7 +93,28 @@ async function loadApps() {
 
 function cardBody(app, isDisabled) {
   const links = app.links
-    .map((l) => `<a href="${l.url}" target="_blank" rel="noopener">${l.label} &#8599;</a>`)
+    .map((l) => {
+      const kind = linkKind(l.url);
+      const icon = `<span class="link-icon" aria-hidden="true">${LINK_KIND_ICON[kind]}</span>`;
+      const cost = costBadge(l.cost);
+      // `description` and `category` (optional, per-link metadata) surface
+      // as the hover tooltip rather than taking up card space - there's no
+      // room for tags on a pill this small.
+      const title = [
+        l.description,
+        Array.isArray(l.category) && l.category.length ? `Category: ${l.category.join(", ")}` : null,
+        LINK_KIND_TITLE[kind],
+      ]
+        .filter(Boolean)
+        .join(" — ");
+      // A local-app link hands off to mashghal-launch:// (see the "Design
+      // Tools" card), not a website - opened in the same tab, so the
+      // browser doesn't pop an empty blank tab for a scheme it can't
+      // actually navigate to.
+      return kind === "local-app"
+        ? `<a href="${l.url}" title="${title}">${icon}${l.label}${cost}</a>`
+        : `<a href="${l.url}" target="_blank" rel="noopener" title="${title}">${icon}${l.label}${cost}</a>`;
+    })
     .join("");
 
   const stats = app.stats
@@ -78,6 +131,22 @@ function cardBody(app, isDisabled) {
       : `<button class="icon-button power-toggle start" data-id="${app.id}" data-action="start" title="${notCreated ? "Container doesn't exist yet - run ./scripts/start.sh to create it" : "Start " + app.name}" aria-label="Start ${app.name}" ${notCreated ? "disabled" : ""}>${ICONS.play}</button>`
     : "";
 
+  // Apps with neither `containers` nor `healthUrl` (a plain collection of
+  // external links) have nothing for Mashghal to monitor, so the
+  // status/check-now/monitoring UI - all meaningless for them - is skipped.
+  const monitored = Array.isArray(app.containers) || Boolean(app.healthUrl);
+  const footer = monitored
+    ? `
+    <div class="card-footer">
+      <div class="status-text"><span class="dot"></span>${STATUS_LABELS[app.status] || app.status}</div>
+      <div class="card-actions">
+        ${powerButton}
+        <button class="icon-button check-now" data-id="${app.id}" title="Check now" aria-label="Check ${app.name} now">${ICONS.refresh}</button>
+        <button class="icon-button monitor-toggle" data-id="${app.id}" title="${isDisabled ? "Turn monitoring on" : "Turn monitoring off"}" aria-label="${isDisabled ? "Turn monitoring on for " + app.name : "Turn monitoring off for " + app.name}">${isDisabled ? ICONS.eyeOff : ICONS.eye}</button>
+      </div>
+    </div>`
+    : "";
+
   return `
     <div class="card-header">
       ${icon}
@@ -86,14 +155,7 @@ function cardBody(app, isDisabled) {
     <p class="desc">${app.description}</p>
     ${stats}
     <div class="links">${links}</div>
-    <div class="card-footer">
-      <div class="status-text"><span class="dot"></span>${STATUS_LABELS[app.status] || app.status}</div>
-      <div class="card-actions">
-        ${powerButton}
-        <button class="icon-button check-now" data-id="${app.id}" title="Check now" aria-label="Check ${app.name} now">${ICONS.refresh}</button>
-        <button class="icon-button monitor-toggle" data-id="${app.id}" title="${isDisabled ? "Turn monitoring on" : "Turn monitoring off"}" aria-label="${isDisabled ? "Turn monitoring on for " + app.name : "Turn monitoring off for " + app.name}">${isDisabled ? ICONS.eyeOff : ICONS.eye}</button>
-      </div>
-    </div>
+    ${footer}
   `;
 }
 
@@ -105,7 +167,7 @@ function render(apps) {
   for (const app of apps) {
     const displayApp = resolveDisplayApp(app);
     const card = document.createElement("div");
-    card.className = `card status-${displayApp.status}`;
+    card.className = displayApp.status ? `card status-${displayApp.status}` : "card";
     card.dataset.id = app.id;
     card.innerHTML = cardBody(displayApp, disabledIds.has(app.id));
     grid.appendChild(card);
