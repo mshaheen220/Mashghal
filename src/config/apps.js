@@ -64,6 +64,9 @@ module.exports = [
     name: "Maker Sites",
     description: "A collection of useful maker sites with models, etc.",
     icon: "icons/maker-links.svg",
+    // Long, growing link lists read better as a full-width row than
+    // squeezed into a single grid column alongside the app cards.
+    fullWidth: true,
     links: [
       {
         label: "MakerWorld",
@@ -121,6 +124,9 @@ module.exports = [
     name: "Design Tools",
     description: "Local apps for CAD, slicing, and vector design.",
     icon: "icons/design-tools.svg",
+    // Long, growing link lists read better as a full-width row than
+    // squeezed into a single grid column alongside the app cards.
+    fullWidth: true,
     // mashghal-launch:// is a custom URL scheme handled entirely by the
     // browser/host, not by Mashghal's own server - which runs inside a
     // Docker container (see ../../Dockerfile) and so has no way to launch a

@@ -167,7 +167,7 @@ function render(apps) {
   for (const app of apps) {
     const displayApp = resolveDisplayApp(app);
     const card = document.createElement("div");
-    card.className = displayApp.status ? `card status-${displayApp.status}` : "card";
+    card.className = (displayApp.status ? `card status-${displayApp.status}` : "card") + (app.fullWidth ? " card-full" : "");
     card.dataset.id = app.id;
     card.innerHTML = cardBody(displayApp, disabledIds.has(app.id));
     grid.appendChild(card);
