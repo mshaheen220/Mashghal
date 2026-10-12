@@ -35,6 +35,17 @@ module.exports = [
     tipsUrl: "http://localhost:8001/api/tips/",
   },
   {
+    id: "svg-stacker",
+    name: "SVG Stacker",
+    description: "Turns an SVG into a stacked color sign 3MF for OrcaSlicer, with filament swaps built in.",
+    icon: "icons/svg-stacker.svg",
+    links: [{ label: "Open", url: "http://localhost:8181" }],
+    containers: ["svg-stacker-app-1"],
+    // Client-only app: nginx serves this as static JSON with open CORS, and
+    // the browser fetches it directly (same as the other apps' tipsUrl).
+    tipsUrl: "http://localhost:8181/api/tips/",
+  },
+  {
     id: "spoolman",
     name: "Spoolman",
     description: "Filament inventory tracker for the 3D printer.",
@@ -111,6 +122,13 @@ module.exports = [
         cost: "$",
       },
       {
+        label: "Printables",
+        url: "https://www.printables.com/",
+        description: "Prusa-run model repository with a large free community library and a rewards program.",
+        category: ["models", "3d-printing"],
+        cost: "free",
+      },
+      {
         label: "Hugging Face",
         url: "https://huggingface.co/",
         description: "Hub for open ML models and datasets - useful for AI-assisted design tools.",
@@ -162,13 +180,6 @@ module.exports = [
         cost: "free",
       },
       {
-        label: "BumpMesh",
-        url: "https://bumpmesh.com/",
-        description: "Turns images into height/bump-mapped 3D meshes for lithophanes and reliefs.",
-        category: ["mesh-generation", "3d-printing"],
-        cost: "free",
-      },
-      {
         label: "Canva",
         url: "https://www.canva.com/",
         description: "Drag-and-drop graphic design tool; core features are free, Pro is a subscription.",
@@ -188,6 +199,31 @@ module.exports = [
         description: "Cutting-machine design software - SVG import needs the paid Designer Edition.",
         category: ["vector", "cutting"],
         cost: "$$",
+      },
+    ],
+  },
+  {
+    id: "fabrication-tools",
+    name: "Fabrication Tools",
+    description: "Web tools for turning designs into fabrication-ready files.",
+    icon: "icons/fabrication-tools.svg",
+    // Long, growing link lists read better as a full-width row than
+    // squeezed into a single grid column alongside the app cards.
+    fullWidth: true,
+    links: [
+      {
+        label: "BumpMesh",
+        url: "https://bumpmesh.com/",
+        description: "Turns images into height/bump-mapped 3D meshes for lithophanes and reliefs.",
+        category: ["mesh-generation", "3d-printing"],
+        cost: "free",
+      },
+      {
+        label: "Support Fins",
+        url: "https://printfins.com/",
+        description: "Generates breakaway fin supports baked into the model, as an alternative to slicer-generated supports.",
+        category: ["mesh-generation", "3d-printing"],
+        cost: "free",
       },
     ],
   },
