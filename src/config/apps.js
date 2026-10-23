@@ -135,6 +135,13 @@ module.exports = [
         category: ["ai-models", "datasets"],
         cost: "free",
       },
+      {
+        label: "Makeroad",
+        url: "https://www.makeroad.com/",
+        description: "Community-driven platform for 3D printing and design.",
+        category: ["models", "3d-printing"],
+        cost: "free",
+      }
     ],
   },
   {
